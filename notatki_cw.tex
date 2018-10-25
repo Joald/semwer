@@ -1,0 +1,114 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+%\usepackage{polski}
+\usepackage{textcomp}
+\usepackage{color}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage{amsthm}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\lstset{frame=tb,
+    language=Bash,
+    aboveskip=3mm,
+    belowskip=3mm,
+    showstringspaces=false,
+    columns=flexible,
+    basicstyle={\small\ttfamily},
+    numbers=none,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{dkgreen},
+    stringstyle=\color{mauve},
+    breaklines=true,
+    breakatwhitespace=true,
+    escapeinside={(*}{*)},          % if you want to add LaTeX within your code
+    tabsize=4
+}
+
+\title{Notes from Semantics and verification of programs}
+\author{Jacek Olczyk}
+\date{October 2018}
+
+\begin{document}
+\maketitle
+\part{Notes from tutorials by Lorenzo Clemente}
+\section{Small step semantics - continuation}
+\subsection{Recap}
+\begin{itemize}
+	\item Global environments $ \rho \vdash e \rightarrow e' $
+	\item $\frac{\rho[x\rightarrow n]\vdash e \rightarrow e' }{
+		 \rho\vdash\text{ let } x= \underline{n}\text{ in }e \rightarrow\text{ let }x = \underline{n}\text{ in }e'}$
+\end{itemize}
+\subsection{Local environments}
+\begin{itemize}
+	\item How do we define the semantics for 'let $x$ = $e$ in $f$' expressions using local environments? More precisely, we need $e$ to have its own environment, so that its evaluation doesn't affect the environment of $f$, as is the case with global environments.
+	\item We are given the following 2 rules:
+	\item $\frac{}{ (\rho, x)\rightarrow(\rho, \rho(x)) }$
+	\item $\frac{}{(\rho, \text{ let }x = \underline{n}\text{ in }e)\rightarrow(\rho[x\rightarrow n], e) }$
+	\item Now we need to give a rule for evaluating let expressions where a non-numeric expression is assigned to $x$.
+	\item $\frac{ (\rho, e)\rightarrow(\rho', e') }
+	{ (\rho, \text{ let }x = e\text{ in }f)\rightarrow((\rho?\text{ or maybe }\rho'?), \text{ let } x = e'\text{ in }f) }$
+	\item $ \rho $ doesn't work, because then a nested let in expression can't change the value of their variables.
+	\item Neither does $ \rho' $, because then we don't get our original environment back at the end.
+	\item Solution: new construct
+	\item $ e \text{ then }x=n $
+	\item Now we have:
+	\item $\frac{ (\rho, e)\rightarrow(\rho', e') }
+	{ (\rho, e\text{ then }x = \underline{n})\rightarrow(\rho', e'\text{ then } x=\underline{n}) }$
+	\item $\frac{}{ (\rho, \underline m\text{ then }x=\underline{n})\rightarrow(\rho[x\rightarrow \underline{n}], \underline{m}) }$
+	\item $\frac{}{(\rho, \text{ let }x = \underline{n}\text{ in }e)\rightarrow(\rho[x\rightarrow \underline{n}], e\text{ then }x=\rho(x)) }$
+\end{itemize}
+\section{Imperative language}
+\begin{itemize}
+	\item Syntax
+\item $C::=\text{ Skip }| X:=e|C;C|\text{if }b\text{ then }c\text{ else }c |\text{while }b\text{ do }c$
+\item $e::= n|x|e+e$
+\item $b::true|false|e\leq e|\neg b | b\wedge b$
+\item $ E[[e]]_{s}\in\mathbb{Q} $, $ B[[b]]_{s}\in\{true, false\} $
+\item $ s\in State = Var\rightarrow \mathbb{Q} $
+\item Configurations
+\item $ (c, s)\in C $
+\item $ s\in C$ (final) 
+\item Small step rules for C - expressions
+\item $\frac{}{(Skip, s)\rightarrow s}$
+\item $\frac{}{(x:=e, s)\rightarrow s[x\rightarrow E[[e]]_{s}}$
+\item $\frac{(c, s)\rightarrow s'}{(c;d, s)\rightarrow (d, s')}$
+\item $\frac{(c, s)\rightarrow (c', s')}{(c;d, s)\rightarrow (c';d, s')}$
+\item $\frac{B[[b]]_{s}=true}{(\text{if }b\text{ then }c\text{ else }d , s)\rightarrow (c, s)}$
+\item $\frac{B[[b]]_{s}=false}{(\text{if }b\text{ then }c\text{ else }d , s)\rightarrow (d, s)}$
+\item $\frac{B[[b]]_{s}=true}{(\text{while }b\text{ do }c, s)\rightarrow (c; \text{while }b\text{ do }c, s)}$
+\item $\frac{B[[b]]_{s}=false}{(\text{while }b\text{ do }c , s)\rightarrow s}$
+\item Adding "Repeat c until b"
+\item $\frac{}{(\text{Repeat }c\text{ until }b, s)\rightarrow (c ; \text{if }b\text{ then }Skip\text{ else }\text{Repeat }c\text{ until }b, s)}$
+\end{itemize}
+\section{Numbers as strings of bits}
+\begin{itemize}
+	\item Evaluate:
+	\item $n::=\$0|\$1|n 0|n 1|n + n$
+	\item final configurations: numbers without "+", e.g. \$100101
+	\item $ n\rightarrow n' $
+	\item $\frac{n\rightarrow n'}{n0\rightarrow n'0}$
+	\item $\frac{n\rightarrow n'}{n1\rightarrow n'1}$
+	\item $\frac{m\rightarrow m'}{m+n\rightarrow m'+n}$
+	\item $\frac{n\rightarrow n'}{m+n\rightarrow m+n'}$
+	\item $\frac{}{m0+n0\rightarrow (m+n)0}$
+	\item $\frac{}{m0+n1\rightarrow (m+n)1}$
+	\item $\frac{}{m1+n0\rightarrow (m+n)1}$
+	\item $\frac{}{m1+n1\rightarrow (m+n+\$1)0}$
+	\item Fill in the last 4
+	\item I think we should add a rule to merge two doll
+\end{itemize}
+\section{Next time}
+Add to the syntax:
+\begin{itemize}
+	\item for x:=e to e do c 
+	\item do e times c
+	\item do c while e
+\end{itemize}
+\end{document}
