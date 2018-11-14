@@ -111,4 +111,41 @@ Add to the syntax:
 	\item do e times c
 	\item do c while e
 \end{itemize}
+\section{TODO przepisanie z zeszytu}
+\section{Loop, continue and break}
+$$C::=\ldots | loop\ c | continue | break$$
+Last time we did small steps semantics using $c\ then\ d$ statements. Now we want big steps:
+$$\frac{c,s\rightarrow\ldots}{loop\ c,s\rightarrow}\frac{}{continue,s\rightarrow}\frac{}{break,s\rightarrow\ldots}$$
+We can change the set of configurations by adding to the existing set of final configurations pairs $(state, flag)$ where $flag\in \{CNT, BRK\}$, thus:
+$$\frac{c,s\rightarrow s', loop\ c, s'\rightarrow s''}{loop\ c,s\rightarrow s''}
+\frac{c,s\rightarrow (s', CNT), loop\ c, s'\rightarrow s''}{loop\ c,s\rightarrow s''}
+\frac{c,s\rightarrow (s', BRK)}{loop\ c,s\rightarrow s'}$$
+$$\frac{c,s\rightarrow s',(d,s')\rightarrow s'' }{c;d,s\rightarrow s''}, \hat s\in\{s'', (s'',CNT), (s'',BRK)\}
+\frac{c,s\rightarrow (s', f)}{c;d,s\rightarrow (s', f)}
+$$
+\section{Expressions with side effects}
+The syntax is as follows:
+$$C::=Skip | x:=e | c;c$$$$e::=x|n|e+e|c\ resultis\ e$$
+Old rules:
+$$\frac{}{n,s\rightarrow \underline{n}}$$
+$$\frac{}{x,s\rightarrow s(x)}$$
+$$\frac{e,s\rightarrow \underline{m}\ \ f,s\rightarrow \underline{n}}{e+f,s\rightarrow \underline{\underline{m+n}}}$$
+$$\frac{}{Skip,s\rightarrow s}$$
+$$\frac{e,s\rightarrow \underline{n}}{x:=e,s\rightarrow s[x\mapsto n]}$$
+New rules:
+$$\frac{c,s\rightarrow s'\ \ e,s'\rightarrow \underline{n}}{c\ resultis\ e,s\rightarrow \underline{n}}$$
+Buut, this doesn't propagate the state change from inside the expressions! To fix this, we change the meaning of $ \rightarrow $ for expressions by making it go to a pair $ (number, state)$. Here are the modified old rules for addition and $resultis$:
+$$\frac{e,s\rightarrow \underline{m}, s'\ \ f,s\rightarrow \underline{n}, s''}{e+f,s\rightarrow \underline{\underline{m+n}}, s''}$$
+$$\frac{c,s\rightarrow s'\ \ e,s'\rightarrow \underline{n}, s''}{c\ resultis\ e,s\rightarrow \underline{n}, s''}$$
+
+\section{Let in expressions with lazy evaluation}
+Previously we had 'call by value' semantics for let in expressions, now we want 'call by name' semantics, which evaluate the variable assignment only when its value is needed. In CBV, we had $\frac{}{s\vDash x\rightarrow s(x)}$. How do we write semantics for $ let $ in CBN?
+$$\frac{s[x\mapsto e]\vDash f\rightarrow m}{s\vDash let\ x = e\ in\ f\rightarrow m}$$
+$$\frac{s\vDash s(x)\rightarrow n}{s\vDash x\rightarrow \underline{n})}$$
+But this is dynamic binding, the environment used is whatever was at the moment of evaluation.
+To get static binding, we need variables to record state alongside the expressions: $ St=Var\rightarrow(Expr\times St)\cup \mathbb{Q} $. But this is not a definition, just a recursive equation! Thus, let $St_0=\emptyset$ and $ St_{i+1} = Var\rightarrow(E\times St_i \cup \mathbb{Q}) $. And the whole state is defined like this: (A set of russian dolls with arbitrary nesting) $ St=\bigcup_{i=0}^\infty St_i $
+Now we can get to the rules with static binding:
+$$\frac{s(x)=(e,s')\ \ s'\vDash e\rightarrow n}{s\vDash x\rightarrow \underline{n}}$$
+$$\frac{s[x\mapsto e, s]\vDash f\rightarrow m}{s\vDash let\ x = e\ in\ f\rightarrow m}$$
+
 \end{document}
