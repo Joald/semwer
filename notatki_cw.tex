@@ -143,9 +143,146 @@ Previously we had 'call by value' semantics for let in expressions, now we want 
 $$\frac{s[x\mapsto e]\vDash f\rightarrow m}{s\vDash let\ x = e\ in\ f\rightarrow m}$$
 $$\frac{s\vDash s(x)\rightarrow n}{s\vDash x\rightarrow \underline{n})}$$
 But this is dynamic binding, the environment used is whatever was at the moment of evaluation.
-To get static binding, we need variables to record state alongside the expressions: $ St=Var\rightarrow(Expr\times St)\cup \mathbb{Q} $. But this is not a definition, just a recursive equation! Thus, let $St_0=\emptyset$ and $ St_{i+1} = Var\rightarrow(E\times St_i \cup \mathbb{Q}) $. And the whole state is defined like this: (A set of russian dolls with arbitrary nesting) $ St=\bigcup_{i=0}^\infty St_i $
+To get static binding, we need variables to record state alongside the expressions: $ St=Var\rightarrow(Expr\times St)\cup \mathbb{Q} $. But this is not a definition, just a recursive equation! Thus, let $St_0=\emptyset$ and $ St_{i+1} = Var\rightarrow(E\times St_i \cup \mathbb{Q}) $. And the whole state is defined like this: (A set of russian dolls with arbitrary nesting) $ St=\bigcup_{i=0}^\infty St_i $.
 Now we can get to the rules with static binding:
 $$\frac{s(x)=(e,s')\ \ s'\vDash e\rightarrow n}{s\vDash x\rightarrow \underline{n}}$$
 $$\frac{s[x\mapsto e, s]\vDash f\rightarrow m}{s\vDash let\ x = e\ in\ f\rightarrow m}$$
 
+\section{Tutorial 14/11}
+\subsection{Eager vs. lazy, dynamic vs. static}
+\subsubsection{Higher order expression}
+$$e::=x|n|e+e|let\ x=e\ in\ e | \lambda x.e|e\ e$$
+Where $ \lambda x.e $ is $\lambda$ abstraction - function definition, and $e\ e$ is function application.
+Now we find that the $let\ in$ construct is redundant. How do we express its semantics using $ \lambda $ abstraction and application?
+$$let\ x = e\ in\ f \equiv (\lambda x.f) e$$
+We need to use parentheses because application has the highest priority of all expressions.
+\subsubsection{Call-by-value (eager) big step operational semantics.}
+Is there a difference between static and dynamic binding in this case?
+Without higher order expressions, we can't do dynamic binding, because we have no concept of expressions inside state. 
+\paragraph{Is static = dynamic in higher order?}
+$$let\ x=7\ in \ let \ f=\lambda y.y+x\ in\ let\ x=3\ in \ f\ 10$$
+If we evaluate this expression with static binding, it evaluates to 17, as $ x $ gets mapped inside $ f $ to its value at the time of binding, and with dynamic binding it's 13, because $ x $ is bound to 3 at the time of application of $ f $.
+To write the semantics, we introduce closure. For example, $ \lambda y.y+x $ in state $ s $ evaluates to the triplet called closure $ (y, y+x, s) \in Var\times Expr\times St$
+\paragraph{Static binding with eager evaluation}
+$$
+\begin{matrix}
+& \text{STATIC}& \text{DYNAMIC}\\
+\text{EAGER}&
+	\begin{matrix}
+	Val=\mathbb{Z}\cup Var\times Expr\times St\\
+	St=Var\rightarrow Val\\
+	\text{mutually recursive}
+	\end{matrix}&\\
+\text{LAZY}&&
+\end{matrix}
+$$
+Is it possible to construct sets that satisfy this recursive definition? We'll construct a family of sets for both $ Val $ and $ State $ and define them as infinite unions of all sequences.
+$$
+\begin{matrix}
+Val_0=\emptyset & Val_{n+1}=\mathbb{Z}\cup Var\times Expr\times St_{n+1}\\
+St_0=\emptyset  & St_{n+1}=Var\rightarrow Val_n\\
+\end{matrix}
+$$
+Thus, $ Val_1=\mathbb{Z}, Val_2=\mathbb{Z}\cup Var\times Expr\times(Var\rightarrow \mathbb{Z})\ldots $
+Now the big step semantics:
+$$\frac{}{n,s\rightarrow n}\frac{}{x,s\rightarrow s(x)\in Val}
+\frac{e,s\rightarrow\underline{m}, f,s\rightarrow \underline{n}}{e+f,s\rightarrow m+n}$$
+And new ones:
+$$\frac{}{\lambda x.e,s\rightarrow (x, e,s)},
+\frac{(e, s)\rightarrow (x, e', s')\ (f, s) \rightarrow v\ (e', s'[x\mapsto v])\rightarrow v'}{e\ f,s\rightarrow v'}$$
+Important: since elements of $Val$ can be either numbers or closures, then effects of our function applications can also be closures!
+\paragraph{Dynamic binding with eager evaluation.}
+$$
+\begin{matrix}
+& \text{STATIC}& \text{DYNAMIC}\\
+	\text{EAGER} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr\times St)\\
+		St=Var\rightarrow Val\\
+		\text{mutually recursive}
+	\end{matrix} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr)\\
+		St=Var\rightarrow Val\\
+		\text{not recursive anymore!}
+	\end{matrix}\\
+\text{LAZY}&&
+\end{matrix}
+$$
+Now the rules:
+$$\frac{}{\lambda x.e,s\rightarrow (x, e)},
+\frac{(e, s)\rightarrow (x, e')\ (f, s) \rightarrow v\ (e', s[x\mapsto v])\rightarrow v'}{e\ f,s\rightarrow v'}$$
+\paragraph{Static binding with lazy evaluation}
+Is lazy (call by name) even different than eager (call by value)?
+Suppose $ e $ is an expression that does not terminate.
+Find $ f $ that uses $ e $ such that its lazy semantics are different than eager.
+$$ (\lambda x.5)\ e $$
+In lazy, the value is 5. In eager, it does not terminate.
+This is an example of a side effect: not pure function.
+$$
+\begin{array}{c|c|c}
+& \text{STATIC}& \text{DYNAMIC}\\\hline
+	\text{EAGER} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr\times St)\\
+		St=Var\rightarrow Val\\
+		\text{mutually recursive}
+	\end{matrix} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr)\\
+		St=Var\rightarrow Val\\
+		\text{not recursive anymore!}
+	\end{matrix}\\\hline
+\text{LAZY} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr\times St)\\
+		St=Var\rightarrow (Expr \times St)\\
+		\text{just state is recursive}
+	\end{matrix} &
+\end{array}
+$$
+Now the big step semantics:
+$$\frac{}{n,s\rightarrow n}\frac{s(x)=(e,s')\ (e,s')\rightarrow v}{x,s\rightarrow v}
+\frac{e,s\rightarrow\underline{m}, f,s\rightarrow \underline{n}}{e+f,s\rightarrow m+n}$$
+
+$$\frac{}{\lambda x.e,s\rightarrow (x, e,s)},
+\frac{e, s\rightarrow (x, e', s')\ , (e's'[x\mapsto (f,s)])\rightarrow v}{e\ f,s\rightarrow v}$$
+We do not evaluate $ f $ anymore, we just pass it inside $ e' $!
+\paragraph{Dynamic binding with lazy evaluation}
+Example for a difference between static and dynamic under lazy evaluation:
+$$(\lambda x(\lambda y\lambda x\ y)x\ 3)5$$
+Under static we get 5, because $ y $ gets bound to expression $ x $, with the environment where $ x $ was bound to 5, while in static the expression $x$ gets evaluated in the internal environment where $ x $ is bound to 3.
+
+$$
+\begin{array}{c|c|c}
+& \text{STATIC}& \text{DYNAMIC}\\\hline
+\text{EAGER} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr\times St)\\
+		St=Var\rightarrow Val\\
+		\text{mutually recursive}
+	\end{matrix} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr)\\
+		St=Var\rightarrow Val\\
+		\text{not recursive anymore!}
+	\end{matrix}\\\hline
+\text{LAZY} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr\times St)\\
+		St=Var\rightarrow (Expr \times St)\\
+		\text{just state is recursive}
+	\end{matrix} &
+	\begin{matrix}
+		Val=\mathbb{Z}\cup (Var\times Expr)\\
+		St=Var\rightarrow Expr\\
+		\text{again, not recursive!}
+	\end{matrix}
+\end{array}
+$$
+And the rules:
+$$
+\frac{s(x)=e\ (e,s)\rightarrow v}{x,s\rightarrow v}
+\frac{}{\lambda x.e,s\rightarrow (x, e)}$$$$
+\frac{(e, s)\rightarrow (x, e')\ (e', s[x\mapsto f])\rightarrow v}{e\ f,s\rightarrow v}$$
 \end{document}
