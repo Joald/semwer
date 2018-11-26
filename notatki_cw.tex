@@ -65,28 +65,28 @@
 	\item $\frac{}{(\rho, \text{ let }x = \underline{n}\text{ in }e)\rightarrow(\rho[x\rightarrow \underline{n}], e\text{ then }x=\rho(x)) }$
 \end{itemize}
 \section{Imperative language}
-\begin{itemize}
-	\item Syntax
-\item $C::=\text{ Skip }| X:=e|C;C|\text{if }b\text{ then }c\text{ else }c |\text{while }b\text{ do }c$
-\item $e::= n|x|e+e$
-\item $b::true|false|e\leq e|\neg b | b\wedge b$
-\item $ E[[e]]_{s}\in\mathbb{Q} $, $ B[[b]]_{s}\in\{true, false\} $
-\item $ s\in State = Var\rightarrow \mathbb{Q} $
-\item Configurations
-\item $ (c, s)\in C $
-\item $ s\in C$ (final) 
-\item Small step rules for C - expressions
-\item $\frac{}{(Skip, s)\rightarrow s}$
-\item $\frac{}{(x:=e, s)\rightarrow s[x\rightarrow E[[e]]_{s}}$
-\item $\frac{(c, s)\rightarrow s'}{(c;d, s)\rightarrow (d, s')}$
-\item $\frac{(c, s)\rightarrow (c', s')}{(c;d, s)\rightarrow (c';d, s')}$
-\item $\frac{B[[b]]_{s}=true}{(\text{if }b\text{ then }c\text{ else }d , s)\rightarrow (c, s)}$
-\item $\frac{B[[b]]_{s}=false}{(\text{if }b\text{ then }c\text{ else }d , s)\rightarrow (d, s)}$
-\item $\frac{B[[b]]_{s}=true}{(\text{while }b\text{ do }c, s)\rightarrow (c; \text{while }b\text{ do }c, s)}$
-\item $\frac{B[[b]]_{s}=false}{(\text{while }b\text{ do }c , s)\rightarrow s}$
-\item Adding "Repeat c until b"
-\item $\frac{}{(\text{Repeat }c\text{ until }b, s)\rightarrow (c ; \text{if }b\text{ then }Skip\text{ else }\text{Repeat }c\text{ until }b, s)}$
-\end{itemize}
+
+\paragraph{Syntax}
+$$C::=\text{ Skip }| X:=e|C;C|\text{if }b\text{ then }c\text{ else }c |\text{while }b\text{ do }c$$
+$$e::= n|x|e+e$$
+$$b::true|false|e\leq e|\neg b | b\wedge b$$
+$$ E[[e]]_{s}\in\mathbb{Q} , B[[b]]_{s}\in\{true, false\}$$
+$$ s\in State = Var\rightarrow \mathbb{Q} $$
+Configurations
+$$ (c, s)\in C $$
+$$ s\in C\text{ (final)}$$
+Small step rules for C - expressions
+$$\frac{}{(Skip, s)\rightarrow s}$$
+$$\frac{}{(x:=e, s)\rightarrow s[x\rightarrow E[[e]]_{s}}$$
+$$\frac{(c, s)\rightarrow s'}{(c;d, s)\rightarrow (d, s')}$$
+$$\frac{(c, s)\rightarrow (c', s')}{(c;d, s)\rightarrow (c';d, s')}$$
+$$\frac{B[[b]]_{s}=true}{(\text{if }b\text{ then }c\text{ else }d , s)\rightarrow (c, s)}$$
+$$\frac{B[[b]]_{s}=false}{(\text{if }b\text{ then }c\text{ else }d , s)\rightarrow (d, s)}$$
+$$\frac{B[[b]]_{s}=true}{(\text{while }b\text{ do }c, s)\rightarrow (c; \text{while }b\text{ do }c, s)}$$
+$$\frac{B[[b]]_{s}=false}{(\text{while }b\text{ do }c , s)\rightarrow s}$$
+Adding "Repeat c until b"
+$$\frac{}{(\text{Repeat }c\text{ until }b, s)\rightarrow (c ; \text{if }b\text{ then }Skip\text{ else }\text{Repeat }c\text{ until }b, s)}$$
+
 \section{Numbers as strings of bits}
 \begin{itemize}
 	\item Evaluate:
@@ -285,4 +285,141 @@ $$
 \frac{s(x)=e\ (e,s)\rightarrow v}{x,s\rightarrow v}
 \frac{}{\lambda x.e,s\rightarrow (x, e)}$$$$
 \frac{(e, s)\rightarrow (x, e')\ (e', s[x\mapsto f])\rightarrow v}{e\ f,s\rightarrow v}$$
+\section{Ćwiczenia n+1}
+$$c::=\dots|\texttt{for }x=e\texttt{ to } f\texttt{ try } c\texttt{ else } d|\texttt{fail}$$
+How to interpret this?
+\begin{enumerate}
+	\item If $ e>f $ then do $ d $.
+	\item Otherwise, $ x:=e $.
+	\item Do $ c $.
+	\item If $ c $ succeeds, then succeed and restore x.
+	\item If $ c $ fails, then $ x:=x+1 $.
+	\item If $ x\le n  $ go to step 3
+	\item Otherwise restore $ x $ and succeed
+\end{enumerate}
+\paragraph{Big step semantics}
+$$C:=c\times St\cup St\times\{\top, \bot\}\text{success - }\top,\text{ fail - }\bot$$
+$$St=Var\rightarrow\mathbb{N}$$
+
+$$\frac{}{\texttt{skip}, s\rightarrow s,\top}$$
+$$\frac{}{\texttt{fail}, s\rightarrow s, \bot}$$
+$$\frac{
+	c,s\rightarrow s',\top\ \ \ 
+	d,s'\rightarrow v
+}{
+	c;d, s\rightarrow v
+}$$
+$$\frac{c,s\rightarrow s',\bot}{
+	c;d, s\rightarrow s',\bot
+}$$
+
+$$\frac{
+	e,s\rightarrow m\ \ \ 
+	f,s\rightarrow n\ \ \
+	m\le n\ \ \ 
+	c,s[x\mapsto m]\rightarrow s',\top
+}{
+	\texttt{for }x=e\texttt{ to }f\texttt{ try }
+	c\texttt{ else }d, s\rightarrow s'[x\mapsto s(x)],\top
+}$$
+
+$$\frac{
+	e,s\rightarrow m\ \ \ 
+	f,s\rightarrow n\ \ \
+	m > n\ \ \ 
+	d,s\rightarrow v
+}{
+	\texttt{for }x=e\texttt{ to }f\texttt{ try }
+	c\texttt{ else }d, s\rightarrow v
+}$$
+
+$$\frac{
+	e,s\rightarrow m\ \ \ 
+	f,s\rightarrow n\ \ \
+	m\le n\ \ \ 
+	c,s[x\mapsto m]\rightarrow s',\bot\ \ \ 
+	\texttt{for }x=m+1\texttt{ to }n\texttt{ try }
+	c\texttt{ else skip}, s'\rightarrow s'', \_
+}{
+	\texttt{for }x=e\texttt{ to }f\texttt{ try }
+	c\texttt{ else }d, s\rightarrow s'[x\mapsto s(x)],\top
+}$$
+
+
+\subsection{Exceptions}
+$$c::=\dots|\texttt{throw}(e)|\texttt{try } c \texttt{ catch }(e)d$$
+\paragraph{Configurations}
+$$C:=c\times St\cup St\times(\mathbb{N}\cup\{\top\})$$
+$$\frac{}{\texttt{skip}, s\rightarrow s,\top}$$
+$$\frac{e\rightarrow k}{\texttt{throw }(e), s\rightarrow s,k}$$
+$$\frac{
+	c,s\rightarrow s',\top\ \ \ 
+	d,s'\rightarrow v
+}{
+	c;d, s\rightarrow v
+}$$
+$$\frac{
+	c,s\rightarrow (s',k), k\not=\top
+}{
+	c;d, s\rightarrow s',k
+}$$
+$$\frac{
+	c\rightarrow s',\top
+}{
+	\texttt{try } c \texttt{ catch }(e)\ d, s\rightarrow s',\top
+}$$
+$$\frac{
+	c\rightarrow (s',k), k\not=\top\ \ \ 
+	e,s'\rightarrow n\ \ \ 
+	n=k\ \ \ 
+	d,s'\rightarrow v
+}{
+	\texttt{try } c \texttt{ catch }(e)\ d, s\rightarrow v
+}$$
+$$\frac{
+	c\rightarrow (s',k), k\not=\top\ \ \ 
+	e,s'\rightarrow n\ \ \ 
+	n\not=k\ \ \ 
+	d,s'\rightarrow v
+}{
+	\texttt{try } c \texttt{ catch }(e)\ d, s\rightarrow s',k
+}$$
+
+\subsection{Nondeterministic programming language}
+$$c::=1|c+c|c-c|x:=c|c;c|c\texttt{ or } c|c?|c*$$
+\begin{itemize}
+\item assignment returns $c$
+\item semicolon returns second command
+\item \texttt{or} executes non-deterministically and returns what it executed
+\item question mark returns 1 if $c = 1$ and has no semantics otherwise
+\item star - non-deterministically choose a natural number and execute $c$ that many times
+\end{itemize}
+Execute b, if it's 1, calculate c and repeat.
+$$\texttt{while }b\texttt{ do } c\equiv (b?;c)*;(1-b)?$$
+We forced the program to non-deterministically choose the right amount of iterations in *.
+$$ \texttt{if }b\texttt{ then }c\texttt{ else }d\equiv (b?;c)\texttt{ or }((1-b)?;d) $$
+\paragraph{Big step semantics}
+$$ C:=c\times St\cup St\times\mathbb{Z} $$
+$$\frac{}{1\rightarrow s,1}$$
+$$\frac{
+	c,s\rightarrow s',m\ \ \ 
+	d,s'\rightarrow s'',n
+}{c+d\rightarrow s'',m+n}$$
+$$\frac{
+	c,s\rightarrow s',n\ \ \ 
+}{x:=c\rightarrow s'[x\mapsto n],n}$$
+$$\frac{
+	c,s\rightarrow s',n\ \ \ 
+	d,s'\rightarrow s'',m
+}{c;d\rightarrow s'',m}$$
+$$\frac{
+	c,s\rightarrow s',n
+}{c\texttt{ or }d\rightarrow s',m}$$
+$$\frac{
+	d,s\rightarrow s',n
+}{c\texttt{ or }d\rightarrow s',n}$$
+$$\frac{
+	c,s\rightarrow s',1
+}{c?\rightarrow s',1}$$
+$$c*\equiv (c*;c) or 1$$
 \end{document}
