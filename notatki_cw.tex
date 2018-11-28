@@ -1,7 +1,7 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{amsfonts}
-%\usepackage{polski}
+\usepackage{soul}
 \usepackage{textcomp}
 \usepackage{color}
 \usepackage{enumitem}
@@ -422,4 +422,137 @@ $$\frac{
 	c,s\rightarrow s',1
 }{c?\rightarrow s',1}$$
 $$c*\equiv (c*;c) or 1$$
+
+
+\section{Tutorial 28/11}
+\subsection{Local blocks and variables}
+$$C\ni c::=\dots\ |\ \texttt{begin }\{d\}\texttt{ in } c$$
+$$D\ni d::=\texttt{Var }x|d;d$$
+We don't have state anymore, instead we get:
+$$s\in Store = Loc  \rightarrow \mathbb{N}$$
+$$\rho\in Env = Var \rightarrow Loc$$
+Loc is a countable set of memory locations. We need not 
+To get environments, we need a function $ newloc:Env \rightarrow Loc $ that satisfies $ newloc(\rho)\not\in dom(\rho) $.\\
+Configurations:
+$$ C_1=C\times Store\times Env \cup Store 
+\text{ for statements}$$
+$$ C_2= D\times Env\cup Env
+\text{ for declarations}$$
+
+Expressions are just like before, except:
+$$\frac{}{x,s,\rho \rightarrow s(\rho(x))}$$
+
+Statements:
+$$\frac{
+	c_1,s,\rho \rightarrow s'\ \ \ 
+	c_2,s',\rho \rightarrow s''
+}{c_1;c_2,s,\rho \rightarrow s''}$$
+$$\frac{
+	e,s,\rho \rightarrow n
+}{
+	x:=e,s,p \rightarrow s[\rho(x)\mapsto n]
+}$$
+$$\frac{
+	d,\rho \rightarrow \rho'\ \ \ 
+	c,s,\rho' \rightarrow s'
+}{
+	\texttt{begin }\{d\}\texttt{ in } c,s,p \rightarrow s'
+}$$
+Declarations:
+$$\frac{
+}{
+	\texttt{Var }x,\rho \rightarrow \rho[x\mapsto newloc(\rho)]
+}$$
+$$\frac{
+	d_1,\rho  \rightarrow \rho'\ \ \ 
+	d_2,\rho'  \rightarrow \rho''
+}{
+	d_1;d_2,\rho \rightarrow \rho''
+}$$
+\subsection{Procedures with one integer variable parameter}
+We extend the declaration syntax:
+$$d::=\texttt{Var }x\ |\ d;d\ |\ \texttt{proc }x(y):=c$$
+Where $ x $ is the procedure name and $ y $ is a formal parameter.
+We also extend the statement syntax:
+$$C\ni c::=\dots\ |\ \texttt{begin }\{d\}\texttt{ in } c\ |\ \texttt{call }x(y)$$
+where $ x $ is again the procedure name and $ y $ is the actual parameter.
+\subsection{Static binding with eager evaluation}
+We need to extend the environment to be able to store procedures.
+We'll use closures consisting of argument, command and environment.
+$$Cl=Var\times C\times Env$$
+The environment will also be different:
+$$\rho\in Env = Var \rightharpoonup (Loc\cup Cl)$$
+Big steps:
+$$\frac{
+	\rho(x)=(z,c,\rho')\ \ \ 
+	l = newloc(\rho')\ \ \ 
+	c,s[l\mapsto s(\rho(y))],\rho'[z\mapsto l] \rightarrow s'
+}{\texttt{call }x(y),s,\rho \rightarrow s'}$$
+$$\frac{
+	cl=(y,c,\rho)
+}{\texttt{proc }x(y):=c,\rho \rightarrow \rho[x\mapsto cl]}$$
+\subsubsection{Is this \st{loss} recursion?}
+$ \texttt{begin }\{\texttt{Var }z;\texttt{proc }x(y):=(z:=y);\texttt{proc }x(y):=\texttt{call }x(y)\} \texttt{call }x(y) $
+The second procedure calls the first one!
+\subsubsection{Are we recursion yet?}
+Rewrite the procedure decl semantics:
+$$\frac{
+	cl=(y,c,\rho[x\mapsto cl])
+}{\texttt{proc }x(y):=c,\rho \rightarrow \rho[x\mapsto cl]}$$
+This is an infinite closure!!!1!\\
+How do we patch this? Either allow infinite closures (XD) or patch this at calltime.
+$$\frac{
+	\rho(x)=(z,c,\rho')\ \ \ 
+	l = newloc(\rho')\ \ \ 
+	c,s[l\mapsto s(\rho(y))],\rho'[z\mapsto l][x\mapsto(z,c,\rho')] \rightarrow s'
+}{\texttt{call }x(y),s,\rho \rightarrow s'}$$
+There we update $ \rho' $ by mapping to $ \rho' $! My lord, is this legal? We will make it legal! This is just a definition of $ \rho'' = \rho'[z\mapsto l][x\mapsto(z,c,\rho')] $ which happens to rely on $\rho'$ twice! Everything is cool.
+\subsection{Dynamic binding with eager evaluation}
+Now closures don't record environment!
+$$Cl=Var\times C$$
+$$\frac{
+	\rho(x)=(z,c)\ \ \ 
+	l = newloc(\rho)\ \ \ 
+	c,s[l\mapsto s(\rho(y))],\rho[z\mapsto l] \rightarrow s'
+}{\texttt{call }x(y),s,\rho \rightarrow s'}$$
+$$\frac{
+	cl=(y,c)
+}{\texttt{proc }x(y):=c,\rho \rightarrow \rho[x\mapsto cl]}$$
+Because we do the \texttt{call} with the environment local to the caller, the caller already has defined the function that they call, so we get recursion for freeeee!
+\subsection{Call by need}
+This tries to combine call by name and call by value.
+Call by name:
+\begin{itemize}
+	\item terminates more often - good
+	\item evaluates programs only if they are needed - good
+	\item but if we need an argument many times, it gets evaluated again! - bad
+	\item this is C macros in a nutshell
+\end{itemize}
+Call by value:
+\begin{itemize}
+	\item We evaluate every argument \textbf{exactly} once - good and bad
+	\item good bc we don't reevaluate
+	\item bad bc we can evaluate unnecessarily
+\end{itemize}
+Call by need combines them into the ultimate Haskell experience:
+$$Store=Loc \rightarrow (\mathbb{N}\cup Expr)$$
+$$Env=Var \rightarrow (Loc\times Cl)$$
+$$Cl=Var\times C$$
+$$Conf=C_0\cup C_1\cup C_2$$
+$C_0$ is for expressions, $ C_1 $ and $ C_2 $ are the same as before.
+$$C_0=Expr\times Store\times Env\cup \mathbb{N}\times Store$$
+$$\frac{s(\rho(x))=n}{x,s,p \rightarrow n, s}$$
+$$\frac{
+	s(\rho(x))=e\ \ \ 
+	e,s,\rho \rightarrow n
+}{
+	x,s,p \rightarrow n,s[\rho(x)\mapsto n]
+}$$
+$$\frac{
+	\rho(x)=(y,c)\ \ \ 
+	l=newloc(\rho)\ \ \ 
+	c,s[l\mapsto e],\rho[y\mapsto l] \rightarrow s'
+}{
+	\texttt{call }x(e),s,p \rightarrow n,s[\rho(x)\mapsto n]
+}$$
 \end{document}
