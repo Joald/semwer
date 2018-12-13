@@ -285,7 +285,7 @@ $$
 \frac{s(x)=e\ (e,s)\rightarrow v}{x,s\rightarrow v}
 \frac{}{\lambda x.e,s\rightarrow (x, e)}$$$$
 \frac{(e, s)\rightarrow (x, e')\ (e', s[x\mapsto f])\rightarrow v}{e\ f,s\rightarrow v}$$
-\section{Ćwiczenia n+1}
+\section{Ćwiczenia 21/11}
 $$c::=\dots|\texttt{for }x=e\texttt{ to } f\texttt{ try } c\texttt{ else } d|\texttt{fail}$$
 How to interpret this?
 \begin{enumerate}
@@ -555,4 +555,93 @@ $$\frac{
 }{
 	\texttt{call }x(e),s,p \rightarrow n,s[\rho(x)\mapsto n]
 }$$
+
+\section{Tutorial 5/12}
+\subsection{Denotational semantics}
+\subsubsection{Arithmetic expressions}
+$$[[e]]_s\in\mathbb{N}, [[\_]]\_:Expr \rightarrow State \rightarrow \mathbb{N}, State: Var \rightarrow \mathbb{N}$$
+$$[[n]]s=n \text{, sometimes we also write }[[n]]=\lambda s.n $$
+This is the same, but not in set theory without extentionality axiom.
+$$[[x]]s=s\ x\ \ \ [[x]]=\lambda s.s\ x \text{ - apply}$$
+$$[[e+f]]s=[[e]]_s+[[f]]s$$
+$$[[\texttt{let }x=e\texttt{ in }f]]s=[[f]]{s[x\mapsto[[e]]s]}$$
+\subsubsection{Programs}
+$$[[c]]s\in State_\bot, [[\_]]\_:C \rightarrow States \rightarrow States_\bot, States_\bot=States\cup\{\bot\}$$
+$$[[\texttt{skip}]]s=s \text{ - pointful notation, }[[\texttt{skip}]]=\lambda s.s=id \text{ - point-free (point-less) notation}$$
+$$[[x:=e]]s=s[x\mapsto[[e]]s]$$
+$$[[c;d]]s=[[d]]([[c]]s)$$
+Introducing strictness in the semantic function: $[[c]]\bot=\bot$ regardless of what $ c $ is.
+$$[[c;d]]=\lambda s.[[d]]([[c]]s)=[[d]]\circ[[c]]$$
+For \texttt{if then else} we'll use a helper function $ Cond_D(x, d, e)=\bigg\{\begin{matrix}
+d&\texttt{if $ x =$ true}\\
+e&\texttt{if $ x =$ false}
+\end{matrix} $ where $ d, e\in D $ and $ x\in\{\texttt{true, false}\} $
+$$[[\texttt{if $ b $ then $ c $ else $ d $}]]s=Cond_{State}([[b]]s,[[c]]s,[[d]]s)$$
+For our denotational semantics, if we want it to uniquely define a semantic we need compositionality.
+$$[[\texttt{while $ b $ do $ c $}]]s=[[\texttt{if $ b $ then $(c;$while $ b $ do $ c) $ else skip}]]s =$$$$=Cond([[b]]s[[\texttt{while $ b $ do $ c $}]]([[c]]s), s)$$
+This is, again, not a definition! 
+If $w=\texttt{while $ b $ do $ c $}$, we have the following:
+$$[[w]]s=[[w]]([[\texttt{skip}]]s)=[[w]]s$$
+This means that our 'rule' didn't give us anything! How to do it?
+Let's define a partial order on states; $ \forall_{s\in States_\bot} \bot\sqsubseteq S, S\sqsubseteq S$. We'll extend that to functions:
+$$f,g : States_\bot \rightarrow States_\bot f\sqsubseteq g \text{ iff } \forall s\ f\ s\sqsubseteq g\ s$$
+Note that $ f,g\sim[[c]] $.\\
+If an operator $ \Phi : (States \rightarrow States_\bot) \rightarrow (States \rightarrow States_\bot)$ that applies the $ Cond $ function ($ \Phi(f)=\lambda s.Cond([[b]]s, f([[c]]s)),s $) has fixed points, that is $ f=\Phi\ f $, then we define the semantics of $ w $ as the least fixed point: $ [[w]]=\mu f.\Phi(f) $
+
+\section{Tutorial 12/12}
+\subsection{Denotational semantics of local variables and procedures}
+\subsubsection{Call-by-name with static binding}
+Syntax:
+$$c::=\dots | \texttt{begin \{$d$\} in } c |\texttt{ call }x(y)$$
+$$d::=\texttt{var }x:=e|\texttt{proc x($y$) := }c | d,d$$
+Semantic domains:
+$$Loc=\{0,1,\dots\}$$
+$$s\in Store = Loc \rightarrow \mathbb{Z}$$
+$$\rho\in Env = Var \rightarrow Loc$$
+$$\pi\in PEnv = Var \rightarrow Proc$$
+In operational we used syntax and semantics to create closures. Here we can do better.
+In call by value, we'd use
+$$Proc = \mathbb{Z} \rightarrow Store_\bot \rightarrow Store_\bot$$
+Let's try that first.
+$$C[[c]]:(Env\times PEnv \times Store_\bot) \rightarrow Store_\bot$$
+$$D[[d]]:(Env\times PEnv \times Store) \rightarrow (Env\times PEnv \times Store)$$
+Rules:
+$$C[[\texttt{skip}]](\rho, \pi, s)=s$$
+$$C[[x:=e]](\rho, \pi, s)=s[\rho\ x\mapsto E[[e]]\rho s]$$
+$$C[[C_1;C_2]](\rho, \pi, s)=C[[C_2]](\rho, \pi, C[[C_1]](\rho,\pi, s))$$
+$$C[[\texttt{while $ b $ do $ c $}]](\rho, \pi, s)=$$
+We need to find a fixed point of $ Cond:Bool \rightarrow Store_\bot \rightarrow Store_\bot \rightarrow Store_\bot $ again!
+$$C[[\texttt{while $ b $ do $ c $}]](\rho, \pi, s)=Cond(B[[b]]\rho s,C[[w]](\rho, \pi, C[[c]]\rho\pi s), s)$$
+This is just an equation, not a definition!
+$$\Phi(F)=\lambda s'.Cond(B[[b]]\rho s',F(\rho, \pi, C[[c]]\rho\pi s'), s')$$
+$$C[[\texttt{while $ b $ do $ c $}]](\rho, \pi, s)=(\mu F.\Phi)s$$
+($ \mu x.y $ means lowest $x$ that is a fixed point of $y$)
+$$C[[\texttt{begin \{$ d $\} in } c]](\rho, \pi, s)=C[[c]](D[[d]](\rho, \pi, s))=C[[c]]$$
+$$C[[\texttt{call x($ y $)}]](\rho, \pi, s)=\pi(x)s(\rho(y))s$$
+
+$$D[[\texttt{var }x:=e]](\rho, \pi, s)=(\rho[x\mapsto e],\pi,s[l\mapsto[[e]]\rho s])$$
+$$D[[\texttt{proc }x(y):=c]](\rho, \pi,s)=(\rho, \pi[x\mapsto \lambda n.\lambda s'.C[[c]](\rho[y\mapsto l], s'[l\mapsto n])], s)$$
+Where  $l=newloc(\rho)$.
+
+\paragraph{Now call by name}
+$$Proc = Loc \rightarrow Store_\bot \rightarrow Store_\bot$$
+$$D[[\texttt{proc }x(y):=c]](\rho, \pi,s)=(\rho, \pi[x\mapsto \lambda v.\lambda s'.C[[c]](\rho[y\mapsto v], \pi,s')], s)$$
+$$C[[\texttt{call x($ y $)}]](\rho, \pi, s)=\pi(x)(\rho\ y)s$$
+
+\subsection{Continuations}
+Let's define a function:
+$$f\ 0 = 1$$
+$$f\ n=nf(n-1)$$
+This is a classic style factorial $ f:\mathbb{N} \rightarrow \mathbb{N^+}$.
+The continuation style factorial is $ \hat{f}:\mathbb{N} \rightarrow (\mathbb{N^+} \rightarrow \mathbb{N^+}) \rightarrow \mathbb{N^+} $
+$$\hat{f}\ 0\ k = k\ 1$$
+$$\hat{f}\ n\ k = \hat{f} (n - 1)(\lambda m.k(nm))$$
+
+Let's prove that the produce the same results, i.e. $ f\ n=\hat{f}\ n\ id$:
+First, let $ n*\_ =\lambda m.n*m$, so that 
+$$\hat{f}\ n\ k = \hat{f} (n - 1)(\lambda m.k(nm))=\hat{f}(n-1)(k\circ (n*\_))$$
+
+Easier to see if defined as:
+$$\hat{f}\ 0=\lambda k.k\ 1$$
+$$\hat{f}\ n=\lambda k.\hat{f}(n-1)(k\circ(n*\_))\ 1$$
 \end{document}
