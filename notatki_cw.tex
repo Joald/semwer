@@ -644,4 +644,66 @@ $$\hat{f}\ n\ k = \hat{f} (n - 1)(\lambda m.k(nm))=\hat{f}(n-1)(k\circ (n*\_))$$
 Easier to see if defined as:
 $$\hat{f}\ 0=\lambda k.k\ 1$$
 $$\hat{f}\ n=\lambda k.\hat{f}(n-1)(k\circ(n*\_))\ 1$$
+\section{Tutorial 19/12}
+\subsection{Fibonacci with continuations}
+Direct:
+$$f\ 0=0$$
+$$f\ 1=1$$
+$$f\ n=f(n-1)+f(n-2)$$
+Continuation style:
+$$f'\ k\ 0=k\ 0$$
+$$f'\ k\ 1=k\ 1$$
+$$f'\ k\ n=f'\ (\lambda a.f'\ (\lambda b.k(a+b))(n-2))(n-1)$$
+
+\subsection{Denotational semantics of programs with continuations}
+Let $ Cont_A = A \rightarrow A $
+Direct style was:
+$$C[[c]]:State_\bot \rightarrow State_\bot$$
+And now we want:
+$$C[[c]]:Cont_{State_\bot} \rightarrow State_\bot \rightarrow State_\bot$$
+
+Semantics of commands:
+$$C[[\texttt{skip}]]=id$$
+$$C[[x:=e]]k=\lambda s.k\ s[x:=E[[e]]s]$$
+$$C[[c;d]]k=C[[c]](C[[d]]k)$$
+also
+$$C[[c;d]]=C[[c]]\circ C[[d]]$$
+Note that direct style is the same, but in the opposite order.
+$$C[[\texttt{if $ b $ then $ c $ else $ d $}]]k=\lambda s. Cond(B[[b]]s, C[[c]]k\ s, C[[d]]k\ s)$$
+Let $ w=\texttt{while $b$ do $c$} $
+$$C[[w]]k=\lambda s.Cond(B[[b]]s, C[[c]](C[[w]]k)s,k\ s) $$
+Again, we need to do tha fixed point.
+$$\Phi(F)=\lambda\beta.\lambda s.Cond([[b]]s,C[[s]](F\beta)s, \beta s)$$
+And the real semantics of $ w $ is the least fixed point of $ \Phi $.
+\subsection{other stuff}
+Abort:
+$$ C[[\texttt{abort}]]k=id_{State_\bot} $$
+$$ C[[\texttt{break}]]k=?$$
+We need to change the semantics:
+$$C[[c]]:Cont_{State_\bot} \rightarrow Cont_{State_\bot} \rightarrow State_\bot \rightarrow State_\bot$$
+And rewrite all rules!
+$$C[[\texttt{skip}]]k\alpha=k$$
+$$ C[[\texttt{abort}]]k\alpha=id_{State_\bot} $$
+$$C[[\texttt{break}]]k\alpha=\alpha$$
+$$C[[x:=e]]k\alpha=\lambda s.k\ s[x:=E[[e]]s]$$
+$$C[[c;d]]k=C[[c]](C[[d]]k\alpha)\alpha$$
+$$C[[\texttt{while $ b $ do $ c $}]]k\alpha=(\mu F\Phi(F))k$$
+and 
+$$\Phi(F)=\lambda\beta.\lambda s.Cond([[b]]s,C[[s]](F\beta)\beta s, \beta s)$$
+\subsection{Exceptions}
+We need a map, continuation environment 
+$ CEnv=\mathbb{Z} \rightarrow Cont_{State_\bot} $
+$$C[[c]]:Cont_{State_\bot} \rightarrow Cont_{State_\bot}  \rightarrow CEnv \rightarrow State_\bot \rightarrow State_\bot$$
+$$C[[\text{throw } e]]k\alpha\rho=\lambda s.\rho(E[[e]]s)s$$
+$$C[[\text{try $ c $ catch $ e\ d $}]]k\alpha\rho=\lambda s.([[c]]k\alpha\rho[[[e]]s\mapsto(C[[d]]k\alpha\rho)])s$$
+\subsection{Arithmetic expressions - continuation style}
+Direct was $ E[[e]]:State_\bot \rightarrow \mathbb{Z} $, continuation will be: $ E[[e]] : ECont \rightarrow State_\bot \rightarrow State_\bot$, where $\alpha\in ECont=\mathbb{Z} \rightarrow State_\bot $.
+With that, let's do assignment first:
+$$C[[x:=e]]k=\lambda s.E[[e]](\lambda n.k\ s[x\mapsto n])s$$
+$$ E[[n]]\alpha =\lambda s.\alpha\ n$$
+$$ E[[x]]\alpha =\lambda s.\alpha\ (s\ x)$$
+
+$$ E[[e+f]]\alpha =\lambda s.E[[e]](\lambda m.E[[f]](\lambda n.\alpha(n+m))s)s$$
+$ m  $ is the value of $ e $
+This encodes the order of evaluation of subexpressions.
 \end{document}
