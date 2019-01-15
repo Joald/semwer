@@ -1,0 +1,65 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\usepackage{polski}
+\usepackage{textcomp}
+\usepackage{color}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\lstset{frame=tb,
+	language=Bash,
+	aboveskip=3mm,
+	belowskip=3mm,
+	showstringspaces=false,
+	columns=flexible,
+	basicstyle={\small\ttfamily},
+	numbers=none,
+	numberstyle=\tiny\color{gray},
+	keywordstyle=\color{blue},
+	commentstyle=\color{dkgreen},
+	stringstyle=\color{mauve},
+	breaklines=true,
+	breakatwhitespace=true,
+	escapeinside={(*}{*)},
+	tabsize=4
+}
+
+\title{Second assignment blablabla}
+\author{Jacek Olczyk}
+\date{December 2018}
+\begin{document}
+\maketitle
+\section{Semantic functions and domains}
+
+\begin{align*}
+Loc&=\ \mathbb{N}\\
+s\in Store&=\ Loc \rightarrow \mathbb{Z}\\
+\rho\in VEnv &=\ Var \rightarrow Loc\\
+\pi\in PEnv &=\ PName \rightarrow Proc\\
+Proc &=\ Loc \rightarrow Store_\bot \rightarrow Store_\bot\\
+\mathcal{N}[[\cdot]]&:\ Num \rightarrow \mathbb{Z}\\
+\mathcal{B}[[\cdot]]&:\ BExpr \rightarrow VEnv \rightarrow  Store_\bot \rightarrow \{\texttt{tt}, \texttt{ff}\}\\
+\mathcal{E}[[\cdot]]&:\ Expr \rightarrow VEnv \rightarrow  Store_\bot \rightarrow \mathbb{Z}\\
+\mathcal{I}[[\cdot]]&:\ Instr \rightarrow VEnv \times PEnv  \rightarrow Store_\bot  \rightarrow Store_\bot\\
+\mathcal{D}[[\cdot]]&:\ Decl \rightarrow VEnv \times PEnv\times Store_\bot \rightarrow VEnv\times PEnv\times Store_\bot\\
+\end{align*}
+It is assumed that all functions that receive $ \bot $ as an argument always return $ \bot $.
+\section{Equations}
+
+\begin{align*}
+\mathcal{D}[[\texttt{proc }p(x)\ I]](\rho, \pi, s)&=(\rho, \pi[p\mapsto \text{least fixed point of }\Phi], s)\\
+&\texttt{where }\Phi(F)=\lambda l.\lambda s.s'[l\mapsto s'l'] \\
+&\texttt{where }s'=\mathcal{I}[[I]](\rho[x\mapsto l'],\pi[p\mapsto F])(s[l'\mapsto sl])\\
+&\texttt{where }l'=newloc(\rho)\\
+\mathcal{I}[[\texttt{call }p(x)]](\rho,\pi) &= \pi p(\rho x)
+\end{align*}
+
+\end{document}

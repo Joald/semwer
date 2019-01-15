@@ -705,5 +705,55 @@ $$ E[[x]]\alpha =\lambda s.\alpha\ (s\ x)$$
 
 $$ E[[e+f]]\alpha =\lambda s.E[[e]](\lambda m.E[[f]](\lambda n.\alpha(n+m))s)s$$
 $ m  $ is the value of $ e $
-This encodes the order of evaluation of subexpressions.
+This also encodes the order of evaluation of subexpressions.
+\section{Tutorial 9/01}
+\subsection{Axiomatic semantics}
+Hoare triplet:
+$$\{A\}c\{B\}$$
+When we show that $A$ is true, then we run $c$ and if it terminates, then $ B $ holds, then we can say that the triple is true.\\
+$ A, B $ are formulas over $ (\mathbb{Z}, +, \cdot, 0, 1, \le) $\\
+The semantics of a formula is the set of tuples that satisfy the formula.
+Now we have rules from which we can derive provable triplets.
+$$\frac{}{\{A\}\texttt{skip}\{A\}}$$
+$$\frac{
+	\{A\}c\{C\}\ \ \ 
+	\{C\}d\{B\}
+}{
+	\{A\}c;d\{B\}
+}$$
+$$\frac{
+	\{A\wedge b\}c\{B\}\ \ \ 
+	\{A\wedge \neg b\}d\{B\}
+}{
+	\{A\}\texttt{if $b$ then $c$ else $d$}\{B\}
+}$$
+For assignment, we need to reason backwards. We look at what we get after the assignment, and replace all occurrences of the variable we assign to with the expression we assign:
+$$\frac{}{\{A[x\mapsto e]\}x:=e\{A\}}$$
+Now the last rule is the while loop:
+$$\frac{
+	\{A\wedge b\}c\{A\}
+}{
+	\{A\}\texttt{while $ b $ do $ c $}\{A \wedge \neg b\}
+}$$
+And the weakening role
+$$\frac{
+	A\implies A'\ \ \ 
+	\{A'\}c\{B'\}\ \ \ 
+	B'\implies B
+}{
+	\{A\}c\{B\}
+}$$
+This is not complete (everything true can be proven), but is relatively complete relative to first order logic, because we need it to prove the two implications above.
+\subsection{Examples}
+$$\{\texttt{true}\}c\{\texttt{false}\}$$
+This triple is true if and only if $ c $ does not terminate
+\begin{lstlisting}[escapeinside={(*}{*)}]
+(*$\{n\ge1\}$*)
+x := 1;(*$\{x=1\wedge n\ge 1\}$*)
+y := 0;(*$\{x=1\wedge y=0\wedge n\ge 1\} = A$*)
+while (*$x\le n$*) do (y := y + x; x := x + 1)
+(*$\{2y=n(n+1)\} = B$*)
+\end{lstlisting}
+Now we need to find a loop invariant $I$ that is implied by $A$ and $I\wedge \neg x\le n$ implies $ B $.
+A good candidate is $ y=\frac{x(x-1)}{2} $, but this doesn't exactly imply $ B $, just puts a bound on y, we also need to say that $ x\le n+1 $, which combined with what we had implies $ B $.
 \end{document}
